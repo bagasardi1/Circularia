@@ -14,7 +14,8 @@ import {
   Zap,
   TrendingUp,
   MapPin,
-  Bot
+  Bot,
+  Leaf
 } from 'lucide-react';
 
 const fadeInUp = {

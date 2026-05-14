@@ -23,7 +23,7 @@ model User {
   avatar            String?
   phoneNumber       String?
   address           String?
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   updatedAt         DateTime          @updatedAt @map("updated_at")
   
   driver            Driver?
@@ -78,7 +78,7 @@ model WasteReport {
   weight            Float             // in kg
   imageUrl          String?           @map("image_url")
   status            String            @default("PENDING") // PENDING, COLLECTED
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   @@map("waste_reports")
 }
@@ -91,7 +91,7 @@ model Pickup {
   collectionPoint   CollectionPoint   @relation(fields: [collectionPointId], references: [id])
   status            String            @default("ASSIGNED") // ASSIGNED, ON_THE_WAY, COLLECTED, COMPLETED
   scheduledAt       DateTime?         @map("scheduled_at")
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   history           PickupHistory[]
   tracking          WasteTracking[]
@@ -106,7 +106,7 @@ model PickupHistory {
   driverId          String            @map("driver_id")
   driver            Driver            @relation(fields: [driverId], references: [id])
   status            String
-  timestamp         DateTime          @default(node.now())
+  timestamp         DateTime          @default(now())
   
   @@map("pickup_histories")
 }
@@ -117,7 +117,7 @@ model WasteTracking {
   pickup            Pickup            @relation(fields: [pickupId], references: [id])
   stage             String            // KITCHEN, COLLECTION_POINT, DRIVER, PROCESSING, RECYCLED_PRODUCT, MARKETPLACE
   location          String?
-  timestamp         DateTime          @default(node.now())
+  timestamp         DateTime          @default(now())
   description       String?
   
   @@map("waste_tracking")
@@ -154,7 +154,7 @@ model Order {
   user              User              @relation(fields: [userId], references: [id])
   totalAmount       Float             @map("total_amount")
   status            String            @default("PENDING") // PENDING, PAID, SHIPPED, COMPLETED
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   items             OrderItem[]
   
@@ -179,7 +179,7 @@ model EcoPoint {
   user              User              @relation(fields: [userId], references: [id])
   points            Int
   reason            String
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   @@map("eco_points")
 }
@@ -205,7 +205,7 @@ model AISimulation {
   economicValue     Float?            @map("economic_value")
   environmentalImpact String?         @map("environmental_impact")
   recommendation    String?           @db.Text
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   @@map("ai_simulations")
 }
@@ -217,7 +217,7 @@ model EducationContent {
   category          String            // TUTORIAL, GUIDE, LESSON
   level             String            @default("BEGINNER") // BEGINNER, INTERMEDIATE, ADVANCED
   thumbnailUrl      String?           @map("thumbnail_url")
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   @@map("education_contents")
 }
@@ -230,7 +230,7 @@ model Notification {
   message           String
   type              String            // INFO, WARNING, SUCCESS
   isRead            Boolean           @default(false) @map("is_read")
-  createdAt         DateTime          @default(node.now()) @map("created_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
   
   @@map("notifications")
 }
