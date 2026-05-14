@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+  DRIVER
+  COLLECTION_POINT
+}
+
+model User {
+  id                String            @id @default(uuid())
+  email             String            @unique
+  password          String
+  name              String
+  role              Role              @default(USER)
+  avatar            String?
+  phoneNumber       String?
+  address           String?
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  
+  driver            Driver?
+  collectionPoint   CollectionPoint?
+  ecoPoints         EcoPoint[]
+  orders            Order[]
+  notifications     Notification[]
+  aiSimulations     AISimulation[]
+  
+  @@map("users")
+}
+
+model Driver {
+  id                String            @id @default(uuid())
+  userId            String            @unique @map("user_id")
+  user              User              @relation(fields: [userId], references: [id])
+  vehicleType       String?           @map("vehicle_type")
+  licensePlate      String?           @map("license_plate")
+  status            String            @default("AVAILABLE") // AVAILABLE, BUSY, OFFLINE
+  currentLat        Float?
+  currentLng        Float?
+  
+  pickups           Pickup[]
+  pickupHistories   PickupHistory[]
+  leaderboard       Leaderboard?
+  
+  @@map("drivers")
+}
+
+model CollectionPoint {
+  id                String            @id @default(uuid())
+  userId            String            @unique @map("user_id")
+  user              User              @relation(fields: [userId], references: [id])
+  name              String
+  address           String
+  latitude          Float
+  longitude         Float
+  capacity          Float             @default(100) // Percentage
+  wasteType         String?           @map("waste_type") // COMPOST, PLASTIC, etc.
+  
+  reports           WasteReport[]
+  pickups           Pickup[]
+  
+  @@map("collection_points")
+}
+
+model WasteReport {
+  id                String            @id @default(uuid())
+  collectionPointId String            @map("collection_point_id")
+  collectionPoint   CollectionPoint   @relation(fields: [collectionPointId], references: [id])
+  type              String            // PLASTIC, ORGANIC, etc.
+  weight            Float             // in kg
+  imageUrl          String?           @map("image_url")
+  status            String            @default("PENDING") // PENDING, COLLECTED
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  @@map("waste_reports")
+}
+
+model Pickup {
+  id                String            @id @default(uuid())
+  driverId          String?           @map("driver_id")
+  driver            Driver?           @relation(fields: [driverId], references: [id])
+  collectionPointId String            @map("collection_point_id")
+  collectionPoint   CollectionPoint   @relation(fields: [collectionPointId], references: [id])
+  status            String            @default("ASSIGNED") // ASSIGNED, ON_THE_WAY, COLLECTED, COMPLETED
+  scheduledAt       DateTime?         @map("scheduled_at")
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  history           PickupHistory[]
+  tracking          WasteTracking[]
+  
+  @@map("pickups")
+}
+
+model PickupHistory {
+  id                String            @id @default(uuid())
+  pickupId          String            @map("pickup_id")
+  pickup            Pickup            @relation(fields: [pickupId], references: [id])
+  driverId          String            @map("driver_id")
+  driver            Driver            @relation(fields: [driverId], references: [id])
+  status            String
+  timestamp         DateTime          @default(node.now())
+  
+  @@map("pickup_histories")
+}
+
+model WasteTracking {
+  id                String            @id @default(uuid())
+  pickupId          String            @map("pickup_id")
+  pickup            Pickup            @relation(fields: [pickupId], references: [id])
+  stage             String            // KITCHEN, COLLECTION_POINT, DRIVER, PROCESSING, RECYCLED_PRODUCT, MARKETPLACE
+  location          String?
+  timestamp         DateTime          @default(node.now())
+  description       String?
+  
+  @@map("waste_tracking")
+}
+
+model RecycledProduct {
+  id                String            @id @default(uuid())
+  name              String
+  description       String
+  category          String
+  imageUrl          String?           @map("image_url")
+  environmentalImpact String?         @map("environmental_impact")
+  
+  marketplaceItems  MarketplaceProduct[]
+  
+  @@map("recycled_products")
+}
+
+model MarketplaceProduct {
+  id                String            @id @default(uuid())
+  productId         String            @map("product_id")
+  product           RecycledProduct   @relation(fields: [productId], references: [id])
+  price             Float
+  stock             Int               @default(0)
+  
+  orders            OrderItem[]
+  
+  @@map("marketplace_products")
+}
+
+model Order {
+  id                String            @id @default(uuid())
+  userId            String            @map("user_id")
+  user              User              @relation(fields: [userId], references: [id])
+  totalAmount       Float             @map("total_amount")
+  status            String            @default("PENDING") // PENDING, PAID, SHIPPED, COMPLETED
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  items             OrderItem[]
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id                String            @id @default(uuid())
+  orderId           String            @map("order_id")
+  order             Order             @relation(fields: [orderId], references: [id])
+  productId         String            @map("product_id")
+  product           MarketplaceProduct @relation(fields: [productId], references: [id])
+  quantity          Int
+  price             Float
+  
+  @@map("order_items")
+}
+
+model EcoPoint {
+  id                String            @id @default(uuid())
+  userId            String            @map("user_id")
+  user              User              @relation(fields: [userId], references: [id])
+  points            Int
+  reason            String
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  @@map("eco_points")
+}
+
+model Leaderboard {
+  id                String            @id @default(uuid())
+  driverId          String            @unique @map("driver_id")
+  driver            Driver            @relation(fields: [driverId], references: [id])
+  rank              Int
+  totalPickups      Int               @default(0) @map("total_pickups")
+  points            Int               @default(0)
+  
+  @@map("leaderboards")
+}
+
+model AISimulation {
+  id                String            @id @default(uuid())
+  userId            String            @map("user_id")
+  user              User              @relation(fields: [userId], references: [id])
+  wasteType         String            @map("waste_type")
+  quantity          Float
+  imageUrl          String?           @map("image_url")
+  economicValue     Float?            @map("economic_value")
+  environmentalImpact String?         @map("environmental_impact")
+  recommendation    String?           @db.Text
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  @@map("ai_simulations")
+}
+
+model EducationContent {
+  id                String            @id @default(uuid())
+  title             String
+  content           String            @db.LongText
+  category          String            // TUTORIAL, GUIDE, LESSON
+  level             String            @default("BEGINNER") // BEGINNER, INTERMEDIATE, ADVANCED
+  thumbnailUrl      String?           @map("thumbnail_url")
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  @@map("education_contents")
+}
+
+model Notification {
+  id                String            @id @default(uuid())
+  userId            String            @map("user_id")
+  user              User              @relation(fields: [userId], references: [id])
+  title             String
+  message           String
+  type              String            // INFO, WARNING, SUCCESS
+  isRead            Boolean           @default(false) @map("is_read")
+  createdAt         DateTime          @default(node.now()) @map("created_at")
+  
+  @@map("notifications")
+}
