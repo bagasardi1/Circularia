@@ -1,4 +1,12 @@
 import { Module } from '@nestjs/common';
+import { MarketplaceService } from './marketplace.service';
+import { MarketplaceController } from './marketplace.controller';
+import { PrismaModule } from '../prisma/prisma.module';
 
-@Module({})
+@Module({
+  imports: [PrismaModule],
+  providers: [MarketplaceService],
+  controllers: [MarketplaceController],
+  exports: [MarketplaceService],
+})
 export class MarketplaceModule {}
