@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Leaf, Mail, Lock, ArrowRight, Github, Chrome } from 'lucide-react';
+import { Leaf, Mail, Lock, ArrowRight, Github, Globe } from 'lucide-react';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -85,7 +85,7 @@ const LoginPage = () => {
 
           <div className="grid grid-cols-2 gap-4">
              <button className="flex items-center justify-center gap-2 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-sm font-bold hover:bg-white/10 transition-all">
-                <Chrome size={18} /> Google
+                <Globe size={18} /> Google
              </button>
              <button className="flex items-center justify-center gap-2 py-3.5 bg-white/5 border border-white/10 rounded-2xl text-sm font-bold hover:bg-white/10 transition-all">
                 <Github size={18} /> GitHub

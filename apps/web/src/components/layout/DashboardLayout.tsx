@@ -1,37 +1,36 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
-  LayoutDashboard, 
+  Home, 
   Map, 
-  Truck, 
-  Recycle, 
-  ShoppingBag, 
-  GraduationCap, 
+  ScanLine, 
+  Store, 
+  Award, 
   Settings, 
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Bell,
-  Search,
-  User,
-  Activity,
-  Box
+  Recycle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const SidebarItem = ({ icon: Icon, label, href, active, collapsed }: any) => (
+const SidebarItem = ({ icon, label, href, active, collapsed }: any) => (
   <Link href={href}>
     <div className={cn(
-      "flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group relative",
-      active ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-400 hover:text-white hover:bg-white/5",
+      "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative cursor-pointer",
+      active 
+        ? "bg-emerald-900 text-white shadow-md" 
+        : "text-slate-500 hover:bg-slate-50 hover:text-emerald-900",
       collapsed && "justify-center px-2"
     )}>
-      <Icon className={cn("w-5 h-5", active ? "text-white" : "group-hover:text-primary transition-colors")} />
-      {!collapsed && <span className="font-medium">{label}</span>}
+      <span className={cn("shrink-0", active ? "text-white" : "text-slate-400 group-hover:text-emerald-900")}>
+        {icon}
+      </span>
+      {!collapsed && <span className="font-medium text-sm">{label}</span>}
       {collapsed && (
         <div className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
           {label}
@@ -46,34 +45,37 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
-    { icon: Map, label: 'Smart Map', href: '/dashboard/map' },
-    { icon: Truck, label: 'Pickups', href: '/dashboard/pickups' },
-    { icon: Activity, label: 'Waste Tracking', href: '/dashboard/tracking' },
-    { icon: Box, label: 'AI Simulator', href: '/dashboard/simulator' },
-    { icon: Recycle, label: 'Recycling', href: '/dashboard/recycling' },
-    { icon: ShoppingBag, label: 'Marketplace', href: '/dashboard/marketplace' },
-    { icon: GraduationCap, label: 'Education', href: '/dashboard/education' },
+    { icon: <Home size={20} />, label: 'Beranda', href: '/dashboard' },
+    { icon: <Map size={20} />, label: 'Peta Sustainability', href: '/dashboard/map' },
+    { icon: <ScanLine size={20} />, label: 'AI Scan', href: '/dashboard/simulator' },
+    { icon: <Store size={20} />, label: 'Eco Shop', href: '/dashboard/marketplace' },
+    { icon: <Award size={20} />, label: 'Pencapaian Saya', href: '/dashboard/tracking' },
   ];
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-[#F7F9F8] text-slate-800 overflow-hidden font-sans">
+      
       {/* Sidebar */}
       <motion.aside 
         initial={false}
-        animate={{ width: isCollapsed ? 80 : 280 }}
-        className="h-full border-r border-white/5 bg-slate-900/50 backdrop-blur-xl flex flex-col p-4 relative z-30"
+        animate={{ width: isCollapsed ? 80 : 256 }}
+        className="h-full border-r border-gray-200 bg-white flex flex-col p-4 relative z-30 shrink-0"
       >
-        <div className="flex items-center gap-3 mb-10 px-2">
-          <div className="w-10 h-10 bg-eco-gradient rounded-xl flex items-center justify-center shrink-0">
-            <Activity className="w-6 h-6 text-white" />
+        {/* Logo */}
+        <div className="p-4 flex items-center gap-2 mb-4 shrink-0">
+          <div className="relative w-8 h-8">
+            <div className="absolute inset-0 border-2 border-yellow-400 rounded-full"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Recycle className="w-5 h-5 text-emerald-700" />
+            </div>
           </div>
           {!isCollapsed && (
-            <span className="text-xl font-bold eco-text-gradient tracking-tight">Circularia</span>
+            <span className="text-xl font-bold text-emerald-900 tracking-tight">Circularia</span>
           )}
         </div>
 
-        <nav className="flex-1 space-y-2">
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1.5 overflow-y-auto">
           {menuItems.map((item) => (
             <SidebarItem 
               key={item.label}
@@ -84,57 +86,51 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           ))}
         </nav>
 
-        <div className="mt-auto space-y-2 pt-4 border-t border-white/5">
-          <SidebarItem icon={Settings} label="Settings" href="/dashboard/settings" active={pathname === '/dashboard/settings'} collapsed={isCollapsed} />
-          <SidebarItem icon={LogOut} label="Logout" href="/login" collapsed={isCollapsed} />
+        {/* Bottom Profile / Settings */}
+        <div className="mt-auto pt-4 border-t border-gray-100 space-y-2 shrink-0">
+          <SidebarItem 
+            icon={<Settings size={20} />} 
+            label="Settings" 
+            href="/dashboard/settings" 
+            active={pathname === '/dashboard/settings'} 
+            collapsed={isCollapsed} 
+          />
+          <SidebarItem 
+            icon={<LogOut size={20} />} 
+            label="Logout" 
+            href="/login" 
+            collapsed={isCollapsed} 
+          />
+
+          {!isCollapsed && (
+            <div className="p-3 flex items-center gap-3 mt-4 rounded-xl bg-slate-50 border border-slate-100">
+              <img 
+                src="https://i.pravatar.cc/150?u=a042581f4e29026704d" 
+                alt="User" 
+                className="w-9 h-9 rounded-full object-cover border border-gray-200"
+              />
+              <div>
+                <p className="text-xs font-bold text-gray-900 leading-tight">Eco Hero</p>
+                <p className="text-[10px] text-gray-500">Level 4 Recycler</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Toggle Button */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-slate-800 border border-white/10 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+          className="absolute -right-3 top-20 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors z-50 shadow-sm"
         >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
       </motion.aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Top Navbar */}
-        <header className="h-20 border-b border-white/5 bg-slate-950/50 backdrop-blur-md flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-xl border border-white/10 w-96">
-            <Search className="w-4 h-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search data, points, or reports..." 
-              className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none text-slate-300"
-            />
-          </div>
-
-          <div className="flex items-center gap-6">
-            <button className="relative p-2 text-slate-400 hover:text-white transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-            </button>
-            
-            <div className="h-8 w-px bg-white/10" />
-            
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold">Admin User</p>
-                <p className="text-xs text-slate-500">System Administrator</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-eco-gradient p-0.5">
-                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
-                   <User className="w-6 h-6 text-slate-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
           {children}
         </main>
       </div>
@@ -143,3 +139,4 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default DashboardLayout;
+

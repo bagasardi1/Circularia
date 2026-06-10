@@ -1,12 +1,16 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Leaf, Menu, X, User, Bell } from 'lucide-react';
+import { Leaf, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const HIDDEN_PATHS = ['/', '/login', '/register'];
+
 const Navbar = () => {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -18,12 +22,13 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  if (HIDDEN_PATHS.includes(pathname)) return null;
+
   const navLinks = [
-    { name: 'Solutions', href: '#solutions' },
     { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Tracking', href: '/tracking' },
-    { name: 'Education', href: '/education' },
-    { name: 'Marketplace', href: '/marketplace' },
+    { name: 'Tracking', href: '/dashboard/tracking' },
+    { name: 'Education', href: '/dashboard/education' },
+    { name: 'Marketplace', href: '/dashboard/marketplace' },
   ];
 
   return (
@@ -35,15 +40,12 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="p-2 bg-eco-gradient rounded-xl group-hover:rotate-12 transition-transform">
-            <Leaf className="w-6 h-6 text-white" />
-          </div>
+          
           <span className="text-2xl font-bold eco-text-gradient tracking-tight">
             Circularia
           </span>
         </Link>
 
-        {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
@@ -57,18 +59,11 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-4 py-2">
+          <Link href="/" className="bg-eco-gradient text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all">
             Login
-          </Link>
-          <Link
-            href="/register"
-            className="bg-eco-gradient text-white text-sm font-semibold px-6 py-2.5 rounded-full hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all"
-          >
-            Join Ecosystem
           </Link>
         </div>
 
-        {/* Mobile Toggle */}
         <button
           className="md:hidden text-white p-2"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -77,7 +72,6 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -97,21 +91,6 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
-              <hr className="border-white/10 my-2" />
-              <div className="flex flex-col gap-3">
-                <Link
-                  href="/login"
-                  className="w-full text-center py-3 text-slate-300 font-medium"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="w-full text-center py-3 bg-eco-gradient text-white rounded-xl font-bold"
-                >
-                  Join Ecosystem
-                </Link>
-              </div>
             </div>
           </motion.div>
         )}
