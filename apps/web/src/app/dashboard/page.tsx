@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React from "react";
+import React, { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Plus,
@@ -11,7 +11,27 @@ import {
   Sparkles,
   ScanLine,
   ChevronRight,
+  X,
+  MapPin,
+  Clock,
+  Calendar,
+  CheckCircle2,
+  Map as MapIcon
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import dynamic from 'next/dynamic';
+
+// Dynamic import for Map to avoid SSR issues
+const WasteMap = dynamic(() => import("@/components/map/WasteMap"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-slate-100 animate-pulse rounded-3xl flex items-center justify-center text-slate-400">Memuat Peta...</div>
+});
+
+const mockStations = [
+  { id: 1, lat: -6.1988, lng: 106.8310, status: "Normal", name: "Menteng Station" },
+  { id: 2, lat: -6.1945, lng: 106.8230, status: "High", name: "Sarinah Station" },
+  { id: 3, lat: -6.2020, lng: 106.8280, status: "Critical", name: "Sudirman Station" },
+];
 
 /* ---------- sub-components ---------- */
 
@@ -56,6 +76,18 @@ const weeklyData = [
 ];
 
 export default function DashboardPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const handleSchedule = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSuccess(true);
+    setTimeout(() => {
+      setIsSuccess(false);
+      setIsModalOpen(false);
+    }, 2000);
+  };
+
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-6">
@@ -68,10 +100,6 @@ export default function DashboardPage() {
               Anda telah menghemat 42 kg CO₂ bulan ini. Teruskan kerja bagusnya!
             </p>
           </div>
-          <button className="bg-emerald-900 hover:bg-emerald-800 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg shadow-emerald-900/20 transition-all w-fit">
-            <Plus size={18} />
-            Tindakan Baru
-          </button>
         </header>
 
         {/* Main Grid */}
@@ -113,57 +141,60 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Impact Chart Card */}
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Dampak Mingguan</h3>
-                  <p className="text-sm text-gray-500">Pelacakan sampah yang terkumpul (kg)</p>
-                </div>
-                <button className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 transition-colors">
-                  Lihat Detail <ChevronRight size={14} />
-                </button>
-              </div>
-
-              {/* Bar Chart Manual */}
-              <div className="flex items-end justify-around gap-4 h-48">
-                {weeklyData.map((d, index) => (
-                  <div key={index} className="flex flex-col items-center gap-2 flex-1 group">
-                    <div className="w-full flex items-end justify-center" style={{ height: "160px" }}>
-                      <div
-                        className={`w-full rounded-2xl transition-all duration-300 ${
-                          index === 3
-                            ? "bg-emerald-900 shadow-lg shadow-emerald-900/20"
-                            : "bg-gray-200 group-hover:bg-gray-300"
-                        }`}
-                        style={{ height: `${d.height}%` }}
-                      />
-                    </div>
-                    <span className={`text-xs font-semibold ${index === 3 ? "text-emerald-900" : "text-gray-400"}`}>
-                      WEEK {d.week}
-                    </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Impact Chart Card */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-gray-900">Dampak Mingguan</h3>
+                    <button className="text-xs font-bold text-emerald-700">Detail</button>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-end justify-around gap-2 h-32">
+                    {weeklyData.map((d, index) => (
+                      <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                        <div
+                          className={`w-full rounded-xl transition-all ${
+                            index === 3 ? "bg-emerald-900" : "bg-gray-100"
+                          }`}
+                          style={{ height: `${d.height}%` }}
+                        />
+                        <span className="text-[10px] font-bold text-gray-400">W{d.week}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mini Map Card */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-gray-900">Stasiun Terdekat</h3>
+                    <MapIcon size={18} className="text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-h-[120px] rounded-2xl overflow-hidden relative border border-gray-100">
+                     <WasteMap stations={mockStations} onSelectStation={() => {}} />
+                  </div>
+                </div>
             </div>
           </div>
 
           {/* RIGHT — Actions & Activity */}
           <div className="space-y-6">
-            <h3 className="font-bold text-gray-900 ml-1">Tindakan</h3>
+            <h3 className="font-bold text-gray-900 ml-1">Apa yang bisa dilakukan?</h3>
 
             {/* Action Cards Grid */}
             <div className="grid grid-cols-2 gap-4">
               {/* Pickup */}
-              <div className="col-span-2 bg-emerald-900 text-white p-5 rounded-2xl shadow-lg shadow-emerald-900/20 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform">
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="col-span-2 w-full text-left bg-emerald-900 text-white p-5 rounded-2xl shadow-lg shadow-emerald-900/20 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform"
+              >
                 <div>
                   <h4 className="font-bold text-lg mb-1">Pickup Sampah</h4>
-                  <p className="text-emerald-200 text-sm">Schedule a collection</p>
+                  <p className="text-emerald-200 text-sm">Jadwalkan penjemputan sampah sekarang</p>
                 </div>
                 <div className="bg-white/10 p-2 rounded-lg">
                   <Truck size={24} />
                 </div>
-              </div>
+              </button>
 
               {/* AI Scan */}
               <div className="bg-emerald-100 text-emerald-900 p-4 rounded-2xl flex flex-col justify-between h-32 cursor-pointer hover:bg-emerald-200 transition-colors">
@@ -178,7 +209,7 @@ export default function DashboardPage() {
                 <div className="bg-white/50 w-10 h-10 rounded-full flex items-center justify-center">
                   <ShoppingBag size={20} />
                 </div>
-                <span className="font-bold">Shop</span>
+                <span className="font-bold">Marketplace</span>
               </div>
             </div>
 
@@ -221,6 +252,112 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Pickup Modal */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="p-8 md:p-10">
+                {!isSuccess ? (
+                  <>
+                    <div className="mb-8">
+                      <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 mb-4">
+                        <Truck size={28} />
+                      </div>
+                      <h2 className="text-2xl font-bold text-slate-900">Jadwalkan Pickup</h2>
+                      <p className="text-slate-500">Isi detail pengambilan sampah Anda.</p>
+                    </div>
+
+                    <form onSubmit={handleSchedule} className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Alamat Pengambilan</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
+                          <textarea 
+                            required
+                            placeholder="Jl. Raya Circularia No. 123, Kota Eco"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-emerald-500 focus:bg-white transition-all text-slate-900 min-h-[100px] resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Tanggal</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
+                            <input 
+                              type="date" 
+                              required
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-emerald-500 focus:bg-white transition-all text-slate-900"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Waktu</label>
+                          <div className="relative">
+                            <Clock className="absolute left-4 top-4 text-slate-400 w-5 h-5" />
+                            <select 
+                              required
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-emerald-500 focus:bg-white transition-all text-slate-900 appearance-none"
+                            >
+                              <option value="">Pilih Jam</option>
+                              <option value="09:00">09:00 AM</option>
+                              <option value="11:00">11:00 AM</option>
+                              <option value="13:00">01:00 PM</option>
+                              <option value="15:00">03:00 PM</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button 
+                        type="submit"
+                        className="w-full py-5 bg-emerald-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-emerald-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                      >
+                        Konfirmasi Jadwal <ArrowRight size={18} />
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="py-12 flex flex-col items-center text-center"
+                  >
+                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-6">
+                      <CheckCircle2 size={48} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Jadwal Berhasil Dibuat!</h2>
+                    <p className="text-slate-500 max-w-xs">Driver kami akan segera menuju lokasi Anda sesuai jadwal.</p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 }

@@ -197,7 +197,7 @@ export default function HomePage() {
                 href="/dashboard"
                 className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-900/20 hover:shadow-lg"
               >
-                Sign In <ArrowRight size={16} />
+                Login <ArrowRight size={16} />
               </Link>
             </form>
 
@@ -205,7 +205,7 @@ export default function HomePage() {
             <p className="text-center text-sm text-slate-500">
               Tidak punya akun?{' '}
               <Link href="/register" className="font-bold text-emerald-700 hover:underline">
-                Join the Circle
+                Daftar Sekarang
               </Link>
             </p>
           </div>

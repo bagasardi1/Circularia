@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
 import { cn } from "@/lib/utils";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -26,7 +25,6 @@ export default function RootLayout({
           "font-inter antialiased bg-slate-950 text-slate-50 min-h-screen selection:bg-primary/30"
         )}
       >
-        <Navbar />
         <main>{children}</main>
       </body>
     </html>

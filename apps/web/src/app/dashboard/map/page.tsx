@@ -168,28 +168,7 @@ export default function MapPage() {
                   </div>
 
                   {/* Bottom Actions */}
-                  <div className="px-6 pb-6 space-y-3">
-                    <button className="w-full bg-emerald-900 hover:bg-emerald-800 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-900/20">
-                      <Navigation size={18} />
-                      Start Navigation
-                    </button>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setSaved(!saved)}
-                        className={`flex-1 border-2 font-semibold py-3 rounded-2xl flex items-center justify-center gap-2 transition-all ${
-                          saved
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-800"
-                            : "bg-white border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >
-                        <Bookmark size={16} className={saved ? "fill-emerald-700 text-emerald-700" : ""} />
-                        {saved ? "Saved" : "Save"}
-                      </button>
-                      <button className="w-14 bg-white border-2 border-gray-200 hover:border-gray-300 text-gray-700 rounded-2xl flex items-center justify-center transition-colors">
-                        <Share2 size={16} />
-                      </button>
-                    </div>
-                  </div>
+                  
                 </motion.div>
               ) : (
                 <motion.div
