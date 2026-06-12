@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -67,7 +67,7 @@ const AdminMarketplacePage = () => {
     stock: ''
   });
 
-  const handleOpenModal = (product = null) => {
+  const handleOpenModal = (product: any = null) => {
     if (product) {
       setEditingProduct(product);
       setFormData({ ...product });
