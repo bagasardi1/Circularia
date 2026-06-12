@@ -20,6 +20,12 @@ export class UsersController {
     return this.usersService.findOne(req.user.id);
   }
 
+  @Get('activities')
+  @ApiOperation({ summary: 'Get recent activities/points' })
+  getActivities(@Req() req) {
+    return this.usersService.getEcoPoints(req.user.id);
+  }
+
   @Put('profile')
   @ApiOperation({ summary: 'Update profile' })
   updateProfile(@Req() req, @Body() dto: UpdateUserDto) {

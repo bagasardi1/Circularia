@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { 
   Truck, 
@@ -14,31 +15,122 @@ import {
   Navigation,
   Star,
   Zap,
-  ChevronRight
+  ChevronRight,
+  RefreshCcw,
+  AlertCircle
 } from 'lucide-react';
 
-const stats = [
-  { label: 'Total Pickup', value: '142', icon: Truck, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { label: 'Pendapatan (Rp)', value: '1.250.000', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { label: 'Rating Driver', value: '4.9', icon: Star, color: 'text-amber-500', bg: 'bg-amber-50' },
-  { label: 'Efisiensi Rute', value: '92%', icon: Zap, color: 'text-purple-600', bg: 'bg-purple-50' },
-];
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
-const activeTasks = [
-  { id: 'PK-001', location: 'Dapur MBG #4', time: '09:00 AM', status: 'In Queue', weight: '12 kg' },
-  { id: 'PK-002', location: 'Collection Point #08', time: '10:30 AM', status: 'Scheduled', weight: '45 kg' },
-  { id: 'PK-003', location: 'Dapur MBG #1', time: '01:00 PM', status: 'Scheduled', weight: '20 kg' },
-];
+export default function DriverDashboard() {
+  const { user } = useAuth();
+  
+  // Database States
+  const [stats, setStats] = useState<any>({
+    totalPickups: 0,
+    totalCompleted: 0,
+    points: 0,
+    earned: 0,
+    rank: 12,
+    efficiency: '92%'
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
-const DriverDashboard = () => {
+  const [availableTasks, setAvailableTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [taskError, setTaskError] = useState<string | null>(null);
+
+  const fetchDriverData = async () => {
+    const token = localStorage.getItem("circularia_token");
+    if (!token) return;
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+
+    // 1. Fetch Stats
+    try {
+      const statsRes = await fetch(`${apiUrl}/pickups/stats`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+    } catch (err) {
+      console.error("Error fetching driver stats:", err);
+    } finally {
+      setLoadingStats(false);
+    }
+
+    // 2. Fetch Available Tasks (Status: PENDING)
+    try {
+      const tasksRes = await fetch(`${apiUrl}/pickups/available`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (tasksRes.ok) {
+        const tasksData = await tasksRes.json();
+        setAvailableTasks(tasksData);
+      }
+    } catch (err) {
+      console.error("Error fetching available tasks:", err);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDriverData();
+  }, []);
+
+  const handleClaimTask = async (pickupId: string) => {
+    setTaskError(null);
+    try {
+      const token = localStorage.getItem("circularia_token");
+      if (!token) throw new Error("Anda harus login.");
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const response = await fetch(`${apiUrl}/pickups/${pickupId}/assign`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({}) // Body empty, backend handles assigning to logged-in user if role is DRIVER
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Gagal mengambil tugas.");
+      }
+
+      // Refresh data after claiming
+      setLoadingTasks(true);
+      fetchDriverData();
+    } catch (err: any) {
+      setTaskError(err.message || "Terjadi kesalahan saat mengambil tugas.");
+    }
+  };
+
+  const statItems = [
+    { label: 'Total Pickup', value: stats.totalPickups.toString(), icon: Truck, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Pendapatan (Rp)', value: stats.earned.toLocaleString("id-ID"), icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Rating Driver', value: '4.9', icon: Star, color: 'text-amber-500', bg: 'bg-amber-50' },
+    { label: 'Efisiensi Rute', value: stats.efficiency, icon: Zap, color: 'text-purple-600', bg: 'bg-purple-50' },
+  ];
+
   return (
     <DashboardLayout>
       <div className="flex flex-col gap-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">Semangat Pagi, Andi! 🚛</h1>
-            <p className="text-gray-500 text-sm">Ada 3 pickup terjadwal untuk hari ini. Tetap berkendara dengan aman!</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+              Semangat Pagi, {user?.name || "Driver"}! ??
+            </h1>
+            <p className="text-gray-500 text-sm">
+              Ada {availableTasks.length} pickup yang tersedia hari ini. Tetap berkendara dengan aman!
+            </p>
           </div>
           <div className="flex items-center gap-3">
              <div className="bg-amber-100 px-4 py-2 rounded-xl border border-amber-200 text-amber-800 font-bold text-sm">
@@ -49,7 +141,7 @@ const DriverDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, idx) => (
+          {statItems.map((stat, idx) => (
             <motion.div 
               key={idx}
               initial={{ opacity: 0, y: 20 }}
@@ -63,7 +155,7 @@ const DriverDashboard = () => {
                  </div>
                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-2xl font-bold text-gray-900">{loadingStats ? '...' : stat.value}</p>
             </motion.div>
           ))}
         </div>
@@ -72,58 +164,64 @@ const DriverDashboard = () => {
           {/* Active Pickups */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between px-2">
-              <h3 className="text-xl font-bold text-gray-900">Tugas Pickup Aktif</h3>
-              <button className="text-sm font-bold text-emerald-700 hover:text-emerald-900">Lihat Semua</button>
+              <h3 className="text-xl font-bold text-gray-900">Tugas Pickup Tersedia</h3>
+              <span className="text-xs font-bold text-slate-400">Status PENDING</span>
             </div>
             
-            <div className="space-y-4">
-              {activeTasks.map((task) => (
-                <div key={task.id} className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm hover:border-emerald-200 transition-all group">
-                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors">
-                            <MapPin size={24} />
-                         </div>
-                         <div>
-                            <h4 className="font-bold text-gray-900">{task.location}</h4>
-                            <p className="text-xs text-gray-500">ID: {task.id} • Estimasi: {task.time}</p>
-                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-6">
-                         <div className="text-right hidden md:block">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase">Estimasi Berat</p>
-                            <p className="text-sm font-bold text-emerald-700">{task.weight}</p>
-                         </div>
-                         <button className="px-6 py-3 bg-emerald-900 text-white rounded-xl font-bold text-xs hover:bg-emerald-800 transition-colors flex items-center gap-2">
-                            Ambil Tugas <ChevronRight size={14} />
-                         </button>
-                      </div>
-                   </div>
-                </div>
-              ))}
-            </div>
+            {taskError && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-2 text-sm font-bold">
+                <AlertCircle size={16} />
+                {taskError}
+              </div>
+            )}
 
-            {/* Route Map Preview Placeholder */}
-            <div className="bg-slate-900 p-8 rounded-[2.5rem] relative overflow-hidden h-[300px]">
-               <div className="absolute inset-0 opacity-30">
-                  {/* Pseudo Map Background */}
-                  <div className="absolute inset-0 border-[40px] border-white/5 rounded-full scale-150 rotate-45" />
-                  <div className="absolute top-1/2 left-1/4 w-full h-1 bg-white/10" />
-                  <div className="absolute left-1/2 top-0 w-1 h-full bg-white/10" />
-               </div>
-               <div className="relative z-10 h-full flex flex-col justify-end">
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="p-2 bg-emerald-500 rounded-lg text-white">
-                        <Navigation size={20} />
+            <div className="space-y-4">
+              {loadingTasks ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-white rounded-3xl border">
+                  <RefreshCcw className="animate-spin mb-4" size={24} />
+                  <p className="text-sm">Memuat daftar tugas...</p>
+                </div>
+              ) : availableTasks.length === 0 ? (
+                <div className="bg-white p-12 text-center rounded-3xl border text-slate-400">
+                  <CheckCircle2 size={32} className="mx-auto mb-2 text-emerald-500" />
+                  <p className="text-sm font-semibold text-gray-900">Semua tugas beres!</p>
+                  <p className="text-xs text-slate-400 mt-1">Belum ada tugas penjemputan baru saat ini.</p>
+                </div>
+              ) : (
+                availableTasks.map((task) => (
+                  <div key={task.id} className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm hover:border-emerald-200 transition-all group">
+                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                           <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-colors shrink-0">
+                              <MapPin size={24} />
+                           </div>
+                           <div>
+                              <h4 className="font-bold text-gray-900">{task.collectionPoint?.address || 'Alamat tidak diatur'}</h4>
+                              <p className="text-xs text-gray-500">
+                                ID: {task.id.split('-')[0].toUpperCase()} ? Tipe: {task.collectionPoint?.wasteType || 'MIXED'}
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium">
+                                Jadwal: {task.scheduledAt ? new Date(task.scheduledAt).toLocaleString("id-ID") : 'Segera'}
+                              </p>
+                           </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-6 self-end md:self-auto">
+                           <div className="text-right hidden md:block">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase">Kapasitas</p>
+                              <p className="text-sm font-bold text-emerald-700">{task.collectionPoint?.capacity}%</p>
+                           </div>
+                           <button 
+                             onClick={() => handleClaimTask(task.id)}
+                             className="px-6 py-3 bg-emerald-900 text-white rounded-xl font-bold text-xs hover:bg-emerald-800 transition-colors flex items-center gap-2"
+                           >
+                              Ambil Tugas <ChevronRight size={14} />
+                           </button>
+                        </div>
                      </div>
-                     <h3 className="text-xl font-bold text-white">Rute Teroptimasi</h3>
                   </div>
-                  <p className="text-slate-400 text-sm max-w-sm mb-6">Sistem AI kami telah menghitung rute tercepat untuk 3 titik penjemputan hari ini.</p>
-                  <button className="w-fit px-8 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm">
-                     Mulai Navigasi
-                  </button>
-               </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -139,7 +237,7 @@ const DriverDashboard = () => {
                         <Award size={40} className="text-amber-500" />
                      </div>
                   </div>
-                  <h4 className="text-lg font-bold text-gray-900">Peringkat #12</h4>
+                  <h4 className="text-lg font-bold text-gray-900">Peringkat #{stats.rank}</h4>
                   <p className="text-xs text-gray-500">Regional Jakarta Selatan</p>
                </div>
 
@@ -175,7 +273,7 @@ const DriverDashboard = () => {
                </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Status */}
             <div className="bg-emerald-900 p-6 rounded-[2rem] text-white">
                <h4 className="font-bold mb-4 flex items-center gap-2">
                   <CheckCircle2 size={18} className="text-emerald-400" /> Status Driver
@@ -192,10 +290,4 @@ const DriverDashboard = () => {
       </div>
     </DashboardLayout>
   );
-};
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }
-
-export default DriverDashboard;

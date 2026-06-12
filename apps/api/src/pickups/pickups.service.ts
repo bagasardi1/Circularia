@@ -9,26 +9,110 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PickupsService {
   constructor(private prisma: PrismaService) {}
 
-  async createPickup(collectionPointId: string) {
-    const collectionPoint = await this.prisma.collectionPoint.findUnique({
-      where: { id: collectionPointId },
-    });
+  async createPickup(userId: string, data: { collectionPointId?: string, address?: string, scheduledAt?: string }) {
+    let cpId = data.collectionPointId;
 
-    if (!collectionPoint) {
-      throw new NotFoundException('Collection Point tidak ditemukan');
+    if (!cpId) {
+      let collectionPoint = await this.prisma.collectionPoint.findUnique({
+        where: { userId },
+      });
+
+      if (!collectionPoint) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        collectionPoint = await this.prisma.collectionPoint.create({
+          data: {
+            userId,
+            name: `Lokasi Pickup ${user?.name || 'User'}`,
+            address: data.address || user?.address || 'Alamat belum diatur',
+            latitude: -6.2,
+            longitude: 106.8,
+            capacity: 100,
+          },
+        });
+      } else if (data.address && data.address !== collectionPoint.address) {
+        collectionPoint = await this.prisma.collectionPoint.update({
+          where: { id: collectionPoint.id },
+          data: { address: data.address }
+        });
+      }
+      cpId = collectionPoint.id;
     }
 
     const pickup = await this.prisma.pickup.create({
       data: {
-        collectionPointId,
+        collectionPointId: cpId,
         status: 'PENDING',
+        scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
       },
     });
 
     return pickup;
   }
 
-  async assignDriver(pickupId: string, driverId: string) {
+  async getMyPickups(userId: string, role: string) {
+    if (role === 'ADMIN') {
+      return this.prisma.pickup.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { collectionPoint: true, driver: { include: { user: true } } }
+      });
+    } else if (role === 'DRIVER') {
+      const driver = await this.prisma.driver.findUnique({ where: { userId } });
+      if (!driver) return [];
+      return this.prisma.pickup.findMany({
+        where: { driverId: driver.id },
+        orderBy: { createdAt: 'desc' },
+        include: { collectionPoint: true, driver: { include: { user: true } } }
+      });
+    } else {
+      return this.prisma.pickup.findMany({
+        where: {
+          collectionPoint: {
+            userId: userId
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        include: { collectionPoint: true, driver: { include: { user: true } } }
+      });
+    }
+  }
+
+  async getAvailablePickups() {
+    return this.prisma.pickup.findMany({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'desc' },
+      include: { collectionPoint: { include: { user: true } } }
+    });
+  }
+
+  async getDriverStats(userId: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { userId },
+      include: { leaderboard: true }
+    });
+
+    if (!driver) {
+      throw new NotFoundException('Driver tidak ditemukan');
+    }
+
+    const myPickups = await this.prisma.pickup.findMany({
+      where: { driverId: driver.id }
+    });
+
+    const totalCompleted = myPickups.filter(p => p.status === 'COMPLETED').length;
+    const points = driver.leaderboard?.points || 0;
+    const earned = totalCompleted * 45000; // Rp 45.000 per pickup selesai (seperti di UI)
+
+    return {
+      totalPickups: myPickups.length,
+      totalCompleted,
+      points,
+      earned,
+      rank: driver.leaderboard?.rank || 12,
+      efficiency: '92%'
+    };
+  }
+
+  async assignDriver(pickupId: string, driverId: string | null, loggedInUserId: string) {
     const pickup = await this.prisma.pickup.findUnique({
       where: { id: pickupId },
     });
@@ -43,19 +127,23 @@ export class PickupsService {
       );
     }
 
-    const driver = await this.prisma.driver.findUnique({
-      where: { id: driverId },
-    });
+    let finalDriverId = driverId;
 
-    if (!driver) {
-      throw new NotFoundException('Driver tidak ditemukan');
+    if (!finalDriverId) {
+      const driver = await this.prisma.driver.findUnique({
+        where: { userId: loggedInUserId },
+      });
+      if (!driver) {
+        throw new NotFoundException('Driver Profile tidak ditemukan');
+      }
+      finalDriverId = driver.id;
     }
 
     return await this.prisma.$transaction(async (tx) => {
       const updatedPickup = await tx.pickup.update({
         where: { id: pickupId },
         data: {
-          driverId,
+          driverId: finalDriverId,
           status: 'ASSIGNED',
         },
       });
@@ -63,7 +151,7 @@ export class PickupsService {
       await tx.pickupHistory.create({
         data: {
           pickupId,
-          driverId,
+          driverId: finalDriverId!,
           status: 'ASSIGNED',
         },
       });
@@ -157,7 +245,7 @@ export class PickupsService {
           driverId,
           totalPickups: 1,
           points: 100,
-          rank: 0,
+          rank: 12,
         },
       });
     }

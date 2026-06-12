@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -14,23 +14,100 @@ import {
   Search,
   Filter,
   MoreVertical,
-  AlertCircle
+  AlertCircle,
+  RefreshCcw,
+  Navigation
 } from 'lucide-react';
 
-const activePickups = [
-  { id: 'PK-001', location: 'Dapur MBG #4 - Jl. Thamrin', items: 'Plastik & Kertas', time: '09:00 AM', status: 'In Queue', weight: '12 kg', priority: 'High' },
-  { id: 'PK-002', location: 'Collection Point #08 - Blok M', items: 'Logam & Elektronik', time: '10:30 AM', status: 'Scheduled', weight: '45 kg', priority: 'Medium' },
-  { id: 'PK-003', location: 'Dapur MBG #1 - Senayan', items: 'Limbah Organik', time: '01:00 PM', status: 'Scheduled', weight: '20 kg', priority: 'Low' },
-];
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
-const completedPickups = [
-  { id: 'PK-995', location: 'Rumah Makan Padang - Tebet', items: 'Minyak Jelantah', date: '11 Juni 2026', weight: '15 kg', points: '+150', earned: 'Rp 45.000' },
-  { id: 'PK-994', location: 'Apartemen Green - Kuningan', items: 'Anorganik Campur', date: '11 Juni 2026', weight: '88 kg', points: '+880', earned: 'Rp 264.000' },
-  { id: 'PK-993', location: 'Kantor Tech - Sudirman', items: 'Kertas & Karton', date: '10 Juni 2026', weight: '32 kg', points: '+320', earned: 'Rp 96.000' },
-];
-
-const PickupListPage = () => {
+export default function PickupListPage() {
   const [activeTab, setActiveTab] = useState('active');
+  const [pickups, setPickups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fetchPickups = async () => {
+    try {
+      const token = localStorage.getItem("circularia_token");
+      if (!token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const response = await fetch(`${apiUrl}/pickups`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPickups(data);
+      } else {
+        setError("Gagal memuat tugas pickup.");
+      }
+    } catch (err) {
+      setError("Kesalahan jaringan.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPickups();
+  }, []);
+
+  const handleUpdateStatus = async (pickupId: string, currentStatus: string) => {
+    let nextStatus = 'ASSIGNED';
+    if (currentStatus === 'ASSIGNED') nextStatus = 'ON_THE_WAY';
+    else if (currentStatus === 'ON_THE_WAY') nextStatus = 'COLLECTED';
+    else if (currentStatus === 'COLLECTED') return;
+
+    try {
+      const token = localStorage.getItem("circularia_token");
+      if (!token) return;
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const response = await fetch(`${apiUrl}/pickups/${pickupId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: nextStatus })
+      });
+
+      if (response.ok) {
+        setLoading(true);
+        fetchPickups();
+      } else {
+        const errData = await response.json();
+        alert(errData.message || "Gagal memperbarui status.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan.");
+    }
+  };
+
+  const getStatusButtonText = (status: string) => {
+    if (status === 'ASSIGNED') return 'Mulai Perjalanan';
+    if (status === 'ON_THE_WAY') return 'Sudah Dijemput';
+    if (status === 'COLLECTED') return 'Sudah Dijemput';
+    return 'Tugas Selesai';
+  };
+
+  // Filter pickups
+  const filteredPickups = pickups.filter(p => {
+    const matchesSearch = p.collectionPoint?.address?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.id.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (activeTab === 'active') {
+      return matchesSearch && p.status !== 'COMPLETED';
+    } else {
+      return matchesSearch && p.status === 'COMPLETED';
+    }
+  });
 
   return (
     <DashboardLayout>
@@ -50,7 +127,7 @@ const PickupListPage = () => {
                 activeTab === 'active' ? "bg-white text-emerald-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
               )}
             >
-              Tugas Aktif ({activePickups.length})
+              Tugas Aktif ({pickups.filter(p => p.status !== 'COMPLETED').length})
             </button>
             <button 
               onClick={() => setActiveTab('history')}
@@ -59,29 +136,44 @@ const PickupListPage = () => {
                 activeTab === 'history' ? "bg-white text-emerald-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
               )}
             >
-              Riwayat Selesai
+              Riwayat Selesai ({pickups.filter(p => p.status === 'COMPLETED').length})
             </button>
           </div>
         </div>
 
-        {/* Search & Filter Bar */}
+        {/* Search Bar */}
         <div className="flex flex-col md:flex-row gap-4">
            <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
               <input 
                 type="text" 
                 placeholder="Cari lokasi atau ID tugas..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-emerald-500 transition-all text-sm"
               />
            </div>
-           <button className="flex items-center gap-2 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold text-sm hover:bg-slate-50">
-              <Filter size={18} /> Filter
-           </button>
         </div>
 
         {/* Content Area */}
         <AnimatePresence mode="wait">
-          {activeTab === 'active' ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-3xl border">
+              <RefreshCcw className="animate-spin mb-4" size={32} />
+              <p className="text-sm">Memuat data pickup...</p>
+            </div>
+          ) : error ? (
+            <div className="p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-3 text-sm font-bold">
+              <AlertCircle size={20} />
+              {error}
+            </div>
+          ) : filteredPickups.length === 0 ? (
+            <div className="bg-white p-16 text-center rounded-3xl border text-slate-400">
+              <Package size={40} className="mx-auto mb-3 text-slate-300" />
+              <p className="text-sm font-bold text-gray-900">Tidak ada tugas ditemukan</p>
+              <p className="text-xs text-slate-400 mt-1">Cek tab lain atau coba cari kata kunci lainnya.</p>
+            </div>
+          ) : activeTab === 'active' ? (
             <motion.div 
               key="active"
               initial={{ opacity: 0, y: 10 }}
@@ -89,12 +181,11 @@ const PickupListPage = () => {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              {activePickups.map((task) => (
+              {filteredPickups.map((task) => (
                 <div key={task.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:border-emerald-200 transition-all group relative overflow-hidden">
-                   {/* Priority Indicator */}
                    <div className={cn(
                      "absolute top-0 left-0 w-2 h-full",
-                     task.priority === 'High' ? "bg-red-500" : task.priority === 'Medium' ? "bg-amber-500" : "bg-emerald-500"
+                     task.status === 'ASSIGNED' ? "bg-blue-500" : task.status === 'ON_THE_WAY' ? "bg-amber-500" : "bg-emerald-500"
                    )} />
 
                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 ml-2">
@@ -104,30 +195,37 @@ const PickupListPage = () => {
                          </div>
                          <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                               <h4 className="font-bold text-gray-900 text-lg">{task.location}</h4>
-                               <span className={cn(
-                                 "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase",
-                                 task.priority === 'High' ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"
-                               )}>{task.priority} Priority</span>
+                              <span className="text-xs font-bold text-gray-900 font-outfit">{task.collectionPoint?.name || 'Titik Penjemputan'}</span>
+                              <span className={cn(
+                                "text-[9px] font-bold px-2 py-0.5 rounded uppercase",
+                                task.status === 'ASSIGNED' ? "bg-blue-50 text-blue-700" : 
+                                task.status === 'ON_THE_WAY' ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"
+                              )}>{task.status === 'COLLECTED' ? 'DIJEMPUT' : task.status}</span>
                             </div>
                             <p className="text-sm text-slate-500 flex items-center gap-2">
-                               <Package size={14} className="text-emerald-500" /> {task.items} • <Clock size={14} /> {task.time}
+                               <MapPin size={14} className="text-[#05422C]" /> {task.collectionPoint?.address || 'Alamat tidak tersedia'}
                             </p>
-                            <p className="text-[10px] font-mono text-slate-400">ID TUGAS: {task.id}</p>
+                            <p className="text-[10px] font-mono text-slate-400">ID TUGAS: {task.id.split('-')[0].toUpperCase()}</p>
                          </div>
                       </div>
 
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 self-end md:self-auto">
                          <div className="text-right px-4 border-r border-slate-100 hidden md:block">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Estimasi Berat</p>
-                            <p className="text-xl font-bold text-emerald-900">{task.weight}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Kapasitas</p>
+                            <p className="text-xl font-bold text-emerald-900">{task.collectionPoint?.capacity}%</p>
                          </div>
-                         <div className="flex flex-col gap-2">
-                            <button className="px-8 py-3 bg-emerald-900 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 transition-colors shadow-lg shadow-emerald-900/10">
-                               Mulai Navigasi
-                            </button>
-                            <button className="px-8 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
-                               Detail Pesanan
+                         <div className="flex flex-col sm:flex-row gap-2">
+                            <button 
+                              onClick={() => handleUpdateStatus(task.id, task.status)}
+                              disabled={task.status === 'COLLECTED'}
+                              className={cn(
+                                "px-6 py-3 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-md shadow-emerald-900/10",
+                                task.status === 'COLLECTED'
+                                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                                  : "bg-emerald-900 text-white hover:bg-emerald-800"
+                              )}
+                            >
+                               {getStatusButtonText(task.status)} <ChevronRight size={14} />
                             </button>
                          </div>
                       </div>
@@ -143,58 +241,45 @@ const PickupListPage = () => {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              {completedPickups.map((task) => (
-                <div key={task.id} className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 opacity-80 hover:opacity-100 transition-all group">
+              {filteredPickups.map((task) => (
+                <div key={task.id} className="bg-slate-50/50 p-6 rounded-[2.5rem] border border-slate-100 opacity-90 hover:opacity-100 transition-all group">
                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div className="flex items-center gap-4 text-slate-400">
-                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100">
+                      <div className="flex items-center gap-4 text-slate-500">
+                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shrink-0">
                             <CheckCircle2 size={24} className="text-emerald-500" />
                          </div>
                          <div>
-                            <h4 className="font-bold text-slate-700">{task.location}</h4>
-                            <div className="flex items-center gap-3 text-xs">
-                               <span className="flex items-center gap-1"><Calendar size={12} /> {task.date}</span>
-                               <span className="flex items-center gap-1"><Package size={12} /> {task.items}</span>
+                            <h4 className="font-bold text-slate-700">{task.collectionPoint?.name || 'Collection Point'}</h4>
+                            <div className="flex items-center gap-3 text-xs mt-1">
+                               <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(task.createdAt).toLocaleDateString("id-ID")}</span>
+                               <span className="flex items-center gap-1"><MapPin size={12} /> {task.collectionPoint?.address?.slice(0, 30)}...</span>
                             </div>
                          </div>
                       </div>
 
-                      <div className="flex items-center gap-12">
+                      <div className="flex items-center gap-8 self-end md:self-auto">
                          <div className="text-center">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Berat</p>
-                            <p className="font-bold text-slate-700">{task.weight}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">Kapasitas</p>
+                            <p className="font-bold text-slate-700">{task.collectionPoint?.capacity}%</p>
                          </div>
                          <div className="text-center">
                             <p className="text-[10px] text-slate-400 font-bold uppercase">Pendapatan</p>
-                            <p className="font-bold text-emerald-600">{task.earned}</p>
+                            <p className="font-bold text-emerald-600">Rp 45.000</p>
                          </div>
                          <div className="text-center">
-                            <p className="text-[10px] text-slate-400 font-bold uppercase">Poin</p>
-                            <p className="font-bold text-amber-500">{task.points} pts</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase">Poin Leaderboard</p>
+                            <p className="font-bold text-amber-500">+100 pts</p>
                          </div>
-                         <button className="p-2 hover:bg-white rounded-lg transition-colors">
-                            <MoreVertical size={20} className="text-slate-400" />
-                         </button>
                       </div>
                    </div>
                 </div>
               ))}
-              
-              {/* Summary Bottom */}
-              <div className="mt-8 p-6 bg-white rounded-[2rem] border border-slate-100 flex items-center justify-between text-slate-500 text-sm">
-                 <p>Menampilkan <span className="font-bold text-emerald-900">3 dari 124</span> total riwayat penjemputan.</p>
-                 <button className="font-bold text-emerald-700 hover:underline">Download Laporan (.PDF)</button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </DashboardLayout>
   );
-};
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }
 
-export default PickupListPage;
+

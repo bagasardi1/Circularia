@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
@@ -27,7 +27,7 @@ export class CollectionPointsController {
   ) {}
 
   @Post()
-  @Roles(Role.COLLECTION_POINT)
+  @Roles(Role.COLLECTION_POINT, Role.USER, Role.ADMIN)
   @ApiOperation({ summary: 'Create collection point' })
   create(@Req() req, @Body() data: any) {
     return this.collectionPointsService.create(req.user.id, data);

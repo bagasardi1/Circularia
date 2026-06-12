@@ -15,9 +15,17 @@ export class CollectionPointsService {
     });
 
     if (existingPoint) {
-      throw new BadRequestException(
-        'User sudah memiliki collection point',
-      );
+      // Jika sudah ada, langsung perbarui lokasinya
+      return this.prisma.collectionPoint.update({
+        where: { id: existingPoint.id },
+        data: {
+          name: data.name,
+          address: data.address,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          wasteType: data.wasteType,
+        },
+      });
     }
 
     return this.prisma.collectionPoint.create({

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
@@ -23,17 +23,39 @@ export class PickupsController {
   constructor(private readonly pickupsService: PickupsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.COLLECTION_POINT)
+  @Roles(Role.ADMIN, Role.COLLECTION_POINT, Role.USER)
   @ApiOperation({ summary: 'Create new pickup request' })
-  createPickup(@Body() body: { collectionPointId: string }) {
-    return this.pickupsService.createPickup(body.collectionPointId);
+  createPickup(@Req() req, @Body() body: { collectionPointId?: string, address?: string, scheduledAt?: string }) {
+    return this.pickupsService.createPickup(req.user.id, body);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get all pickups for current user/driver' })
+  getMyPickups(@Req() req) {
+    return this.pickupsService.getMyPickups(req.user.id, req.user.role);
+  }
+
+  @Get('available')
+  @Roles(Role.DRIVER, Role.ADMIN)
+  @ApiOperation({ summary: 'Get available pending pickups for drivers' })
+  getAvailablePickups() {
+    return this.pickupsService.getAvailablePickups();
+  }
+
+  @Get('stats')
+  @Roles(Role.DRIVER)
+  @ApiOperation({ summary: 'Get driver statistics' })
+  getDriverStats(@Req() req) {
+    return this.pickupsService.getDriverStats(req.user.id);
   }
 
   @Post(':id/assign')
-  @Roles(Role.ADMIN)
+  @Roles(Role.DRIVER, Role.ADMIN)
   @ApiOperation({ summary: 'Assign driver to pickup' })
-  assignDriver(@Param('id') pickupId: string, @Body() body: { driverId: string }) {
-    return this.pickupsService.assignDriver(pickupId, body.driverId);
+  assignDriver(@Req() req, @Param('id') pickupId: string, @Body() body: { driverId?: string }) {
+    // If DRIVER requests, assign to themselves. If ADMIN, use body.driverId
+    const driverToAssign = req.user.role === 'DRIVER' ? null : (body.driverId ?? null);
+    return this.pickupsService.assignDriver(pickupId, driverToAssign, req.user.id);
   }
 
   @Put(':id/status')
@@ -49,3 +71,4 @@ export class PickupsController {
     return this.pickupsService.getPickupDetails(pickupId);
   }
 }
+

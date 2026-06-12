@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   Home, 
@@ -21,11 +21,12 @@ import {
   ClipboardList,
   Navigation,
   Users,
-  Shield,
   Coins,
-  BarChart3
+  BarChart3,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 const SidebarItem = ({ icon, label, href, active, collapsed }: any) => (
   <Link href={href}>
@@ -51,11 +52,39 @@ const SidebarItem = ({ icon, label, href, active, collapsed }: any) => (
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout, isLoading } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Role checks based on path
-  const isDriver = pathname.includes('/driver');
-  const isAdmin = pathname.includes('/admin');
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user) {
+        router.push('/');
+      } else {
+        // Role Guard Logic (Using Uppercase to match AuthContext/Backend)
+        if (pathname.startsWith('/admin') && user.role !== 'ADMIN') {
+          router.push('/dashboard');
+        } else if (pathname.startsWith('/driver') && user.role !== 'DRIVER') {
+          router.push('/dashboard');
+        } else if (pathname.startsWith('/dashboard') && user.role !== 'USER') {
+          if (user.role === 'ADMIN') router.push('/admin');
+          else if (user.role === 'DRIVER') router.push('/driver');
+        }
+      }
+    }
+  }, [user, isLoading, pathname, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
+        <p className="text-slate-400 font-bold tracking-widest text-xs uppercase">Verifikasi Autentikasi...</p>
+      </div>
+    );
+  }
+
+  const isDriver = user.role === 'DRIVER';
+  const isAdmin = user.role === 'ADMIN';
 
   const userMenuItems = [
     { icon: <Home size={20} />, label: 'Beranda', href: '/dashboard' },
@@ -63,7 +92,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { icon: <Store size={20} />, label: 'Eco Marketplace', href: '/dashboard/marketplace' },
     { icon: <Activity size={20} />, label: 'Lacak Limbah', href: '/dashboard/tracking' },
     { icon: <Map size={20} />, label: 'Peta Sustainability', href: '/dashboard/map' },
-    { icon: <Award size={20} />, label: 'Pencapaian', href: '/dashboard/achievements' },
+
   ];
 
   const driverMenuItems = [
@@ -71,14 +100,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { icon: <ClipboardList size={20} />, label: 'Daftar Pickup', href: '/driver/pickups' },
     { icon: <Navigation size={20} />, label: 'Rute Koleksi', href: '/driver/routes' },
     { icon: <DollarSign size={20} />, label: 'Pendapatan', href: '/driver/earnings' },
-    { icon: <Award size={20} />, label: 'Performa & Rank', href: '/driver/performance' },
+    
   ];
 
   const adminMenuItems = [
     { icon: <BarChart3 size={20} />, label: 'Admin Panel', href: '/admin' },
     { icon: <Users size={20} />, label: 'Manajemen User', href: '/admin/users' },
     { icon: <Truck size={20} />, label: 'Manajemen Driver', href: '/admin/drivers' },
-    { icon: <Coins size={20} />, label: 'Point Collection', href: '/admin/points' },
+    { icon: <Coins size={20} />, label: 'Point Management', href: '/admin/points' },
     { icon: <Store size={20} />, label: 'Marketplace Admin', href: '/admin/marketplace' },
   ];
 
@@ -86,39 +115,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="flex h-screen bg-[#F7F9F8] text-slate-800 overflow-hidden font-sans">
-      
-      {/* Sidebar */}
       <motion.aside 
         initial={false}
         animate={{ width: isCollapsed ? 80 : 256 }}
         className="h-full border-r border-gray-200 bg-white flex flex-col p-4 relative z-30 shrink-0"
       >
-        {/* Logo */}
         <div className="p-4 flex items-center gap-2 mb-4 shrink-0">
           <div className="relative w-8 h-8">
             <div className={cn(
               "absolute inset-0 border-2 rounded-full",
-              isAdmin ? "border-emerald-600" : "border-emerald-500"
+              isAdmin ? "border-emerald-600" : isDriver ? "border-amber-500" : "border-emerald-500"
             )}></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Image
-                src="/images/Logo_circular-removebg-preview.png"
-                alt="Circularia Logo"
-                width={20}
-                height={32}
-                className="object-contain"
-              />
+              <Image src="/images/Logo_circular-removebg-preview.png" alt="Circularia Logo" width={20} height={32} className="object-contain" />
             </div>
           </div>
-          {!isCollapsed && (
-            <span className={cn(
-              "text-xl font-bold tracking-tight",
-              isAdmin ? "text-emerald-900" : "text-emerald-900"
-            )}>Circularia</span>
-          )}
+          {!isCollapsed && <span className="text-xl font-bold tracking-tight text-emerald-900">Circularia</span>}
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 space-y-1.5 overflow-y-auto pr-1">
           {menuItems.map((item) => (
             <SidebarItem 
@@ -130,7 +144,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           ))}
         </nav>
 
-        {/* Bottom Profile / Settings */}
         <div className="mt-auto pt-4 border-t border-gray-100 space-y-2 shrink-0">
           <SidebarItem 
             icon={<Settings size={20} />} 
@@ -139,12 +152,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             active={pathname.includes('/settings')} 
             collapsed={isCollapsed} 
           />
-          <SidebarItem 
-            icon={<LogOut size={20} />} 
-            label="Keluar" 
-            href="/" 
-            collapsed={isCollapsed} 
-          />
+          <button onClick={logout} className="w-full">
+            <SidebarItem icon={<LogOut size={20} />} label="Keluar" href="#" collapsed={isCollapsed} />
+          </button>
 
           {!isCollapsed && (
             <div className={cn(
@@ -152,25 +162,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               isAdmin ? "bg-emerald-50 border-emerald-100" : isDriver ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"
             )}>
               <img 
-                src={isAdmin ? "https://i.pravatar.cc/150?u=admin" : isDriver ? "https://i.pravatar.cc/150?u=driver1" : "https://i.pravatar.cc/150?u=a042581f4e29026704d"} 
+                src={`https://i.pravatar.cc/150?u=${user.email}`} 
                 alt="User" 
                 className={cn(
                   "w-9 h-9 rounded-full object-cover border shadow-sm",
-                  isAdmin ? "border-emerald-200" : isDriver ? "border-amber-200" : "border-emerald-200"
+                  isDriver ? "border-amber-200" : "border-emerald-200"
                 )}
               />
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-gray-900 truncate">{isAdmin ? "Super Admin" : isDriver ? "Andi Wijaya" : "Eco Hero"}</p>
+                <p className="text-xs font-bold text-gray-900 truncate">{user.name}</p>
                 <p className={cn(
-                  "text-[10px] font-medium",
-                  isAdmin ? "text-emerald-700" : isDriver ? "text-amber-600" : "text-emerald-600"
-                )}>{isAdmin ? "System Controller" : isDriver ? "Elite Driver" : "Level 4 Recycler"}</p>
+                  "text-[10px] font-medium text-gray-500 truncate",
+                  isDriver ? "text-amber-600" : "text-emerald-600"
+                )}>{user.name}</p><p className="text-[10px] text-gray-400 truncate">{user.email}</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Toggle Button */}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-3 top-20 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-colors z-50 shadow-sm"
@@ -179,7 +188,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         </button>
       </motion.aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
           {children}

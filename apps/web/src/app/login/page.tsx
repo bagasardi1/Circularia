@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Leaf, Mail, Lock, ArrowRight, Globe } from 'lucide-react';
+import { Leaf, Mail, Lock, ArrowRight, Globe, } from 'lucide-react';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
