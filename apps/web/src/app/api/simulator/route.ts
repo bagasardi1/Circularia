@@ -1,8 +1,8 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.NVIDIA_API_KEY || '',
+  apiKey: process.env.NVIDIA_API_KEY || 'dummy-key-to-bypass-build',
   baseURL: 'https://integrate.api.nvidia.com/v1',
 });
 
