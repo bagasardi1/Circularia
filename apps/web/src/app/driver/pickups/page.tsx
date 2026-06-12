@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -35,7 +35,7 @@ export default function PickupListPage() {
       const token = localStorage.getItem("circularia_token");
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
       const response = await fetch(`${apiUrl}/pickups`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -67,7 +67,7 @@ export default function PickupListPage() {
       const token = localStorage.getItem("circularia_token");
       if (!token) return;
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
       const response = await fetch(`${apiUrl}/pickups/${pickupId}/status`, {
         method: "PUT",
         headers: {

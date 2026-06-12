@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -46,7 +46,7 @@ export default function MapPage() {
     const fetchStations = async () => {
       try {
         const token = localStorage.getItem("circularia_token");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
         
         const response = await fetch(`${apiUrl}/collection-points`, {
           headers: {

@@ -46,7 +46,7 @@ export default function DriverDashboard() {
     const token = localStorage.getItem("circularia_token");
     if (!token) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
 
     // 1. Fetch Stats
     try {
@@ -89,7 +89,7 @@ export default function DriverDashboard() {
       const token = localStorage.getItem("circularia_token");
       if (!token) throw new Error("Anda harus login.");
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
       const response = await fetch(`${apiUrl}/pickups/${pickupId}/assign`, {
         method: "POST",
         headers: {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       if (!pickupDate || !pickupTime) throw new Error("Pilih tanggal dan waktu.");
 
       const dateTimeString = `${pickupDate}T${pickupTime}:00.000Z`;
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
       
       const response = await fetch(`${apiUrl}/pickups`, {
         method: "POST",
@@ -118,7 +118,7 @@ export default function DashboardPage() {
       if (!token) throw new Error("Anda harus login.");
       if (!cpName || !cpAddress || !cpLat || !cpLng) throw new Error("Mohon lengkapi semua data.");
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://103-253-213-183.nip.io/api";
       
       const response = await fetch(`${apiUrl}/collection-points`, {
         method: "POST",
